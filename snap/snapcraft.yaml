@@ -1,0 +1,55 @@
+name: grv
+summary: view and manipulate Git repositories from the command line
+description: |
+     GRV is a terminal based interface for viewing Git repositories. It
+     allows refs, commits and diffs to be viewed, searched and filtered.
+     The behaviour and style can be customised through configuration. A query
+     language can be used to filter refs and commits, see the Documentation
+     section for more information.
+adopt-info: grv
+grade: stable
+base: core18
+architectures:
+  - build-on: [s390x, ppc64el, arm64, armhf, amd64, i386]
+
+confinement: strict
+
+apps:
+  grv:
+    command: bin/grv
+    plugs:
+      - home
+      - network
+parts:
+  libgit2:
+    plugin: cmake
+    source: https://github.com/libgit2/libgit2/archive/v0.27.9.tar.gz
+    build-packages:
+        - libssl-dev
+        - libncursesw5-dev
+  grv:
+    plugin: go
+#:    go-channel: 1.11/stable
+    after:
+      - libgit2
+    source-type: git
+    source: https://github.com/rgburke/grv
+    override-pull: |
+      snapcraftctl pull
+      snapcraftctl set-version \
+      "$(git describe --long --tags --always --match=v*.*.* | sed 's/v//')"
+    override-build: |
+      export GOPATH=$(dirname $SNAPCRAFT_PART_INSTALL)/go
+      go get -d github.com/rgburke/grv/cmd/grv
+      cd $GOPATH/src/github.com/rgburke/grv
+      make install
+      mkdir -p $SNAPCRAFT_PART_INSTALL/bin/
+      mv grv $SNAPCRAFT_PART_INSTALL/bin/
+    go-importpath: github.com/rgburke/grv
+    build-packages:
+      - pkg-config
+      - libreadline-dev
+      - libncurses5-dev
+    stage-packages:
+      - git
+
